@@ -18,7 +18,7 @@ export function clamp(value: number, min: number, max: number) {
 export function isNumeric(value: any) {
   if (typeof value != `string`) return false; // we only process strings!
   return (
-    /^\d+\.?\d*$/.test(value.trim()) && // check if value consists only of digits and an optional single dot
+    /^-?\d+\.?\d*$/.test(value.trim()) && // check if value consists only of digits, an optional single dot and an optional minus sign
     !isNaN(value as any) && // use type coercion to parse the _entirety_ of the string (`parseFloat` alone does not do this)...
     !isNaN(parseFloat(value)) // ...and ensure strings of whitespace fail
   );
