@@ -1,9 +1,11 @@
-import { HttpService } from '@nestjs/axios';
+import { HttpModuleOptions, HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
 import axios, { AxiosInstance } from 'axios';
+import { HttpsProxyAgent } from 'https-proxy-agent';
 import { from } from 'ix/iterable';
 import { filter, flatMap, map as mapIx } from 'ix/iterable/operators';
-import { Observable, catchError, defer, map, mergeMap, shareReplay } from 'rxjs';
+import { Observable, defer, map, mergeMap, shareReplay } from 'rxjs';
+import { ConfigurationService } from '../configuration/configuration.service';
 import { ICredentials } from './ICredentials';
 import { IUppMatClassesFilterDataItem } from './IUppMatClassesFilterDataItem';
 import { IUppMatDataItem } from './IUppMatDataItem';
@@ -33,29 +35,40 @@ const authorisedAxiosInstances = new WeakMap<ICredentials, Observable<AxiosInsta
 
 @Injectable()
 export class ICMService {
-  constructor(private httpService: HttpService) {}
+  private httpPoxyConfig: HttpModuleOptions = {
+    proxy: false,
+    httpsAgent: !!this.configurationService.httpsProxy
+      ? new HttpsProxyAgent(this.configurationService.httpsProxy)
+      : undefined
+  };
+
+  constructor(
+    private httpService: HttpService,
+    private configurationService: ConfigurationService
+  ) {}
 
   private getAuthorisedAxios(credentials: ICredentials) {
     const authorisedAxiosInstance =
       authorisedAxiosInstances.get(credentials) ??
       defer(() =>
-        this.httpService.post(LOGIN_URL, {
-          username: credentials.username,
-          password: credentials.password,
-          claims: [`name`, `mail`, `sn`, `givenName`, `exp`]
-        })
+        this.httpService.post(
+          LOGIN_URL,
+          {
+            username: credentials.username,
+            password: credentials.password,
+            claims: [`name`, `mail`, `sn`, `givenName`, `exp`]
+          },
+          this.httpPoxyConfig
+        )
       ).pipe(
-        catchError((err, caught) => {
-          return caught;
-        }),
         map(response => {
           const authHeaderKey = `authorization`;
           const authHeaderValue = response.headers[authHeaderKey];
 
           return axios.create({
+            ...this.httpPoxyConfig,
             headers: {
               ...Object.fromEntries([[authHeaderKey, authHeaderValue]]),
-              //'Accept-Language': `en-GB,en;q=0.9`
               'Accept-Language': `EN`
             }
           });
