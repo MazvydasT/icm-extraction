@@ -2,7 +2,7 @@ import { Logger } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { concat, empty, from, reduce } from 'ix/iterable';
 import { filter, flatMap, groupBy, map as ixMap } from 'ix/iterable/operators';
-import { DateTime, Duration } from 'luxon';
+import { DateTime } from 'luxon';
 import { DataFrame, DataType, Series, TimeUnit, lit } from 'nodejs-polars';
 import { RetryConfig, firstValueFrom, map, retry, tap, timer, zip } from 'rxjs';
 import { AppModule } from './app.module';
@@ -333,12 +333,14 @@ async function bootstrap() {
         configurationService.persistentErrorCooldownMax
       );
 
+      const timerPromise = firstValueFrom(timer(cooldown));
+
       // Persistent error cooldown
       logger.log(
-        `Persistent error occured. Will retry in ${Duration.fromMillis(cooldown).toHuman()}.`
+        `Persistent error occured, will retry ${DateTime.now().plus(cooldown).toRelative()}`
       );
 
-      await firstValueFrom(timer(cooldown));
+      await timerPromise;
 
       continue;
     }
