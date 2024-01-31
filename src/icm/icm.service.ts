@@ -1,6 +1,6 @@
 import { HttpModuleOptions, HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
-import axios, { AxiosInstance } from 'axios';
+import axios, { AxiosError, AxiosInstance } from 'axios';
 import { HttpsProxyAgent } from 'https-proxy-agent';
 import { from } from 'ix/iterable';
 import { filter, flatMap, map as mapIx } from 'ix/iterable/operators';
@@ -65,13 +65,22 @@ export class ICMService {
           const authHeaderKey = `authorization`;
           const authHeaderValue = response.headers[authHeaderKey];
 
-          return axios.create({
+          const axiosInstance = axios.create({
             ...this.httpPoxyConfig,
             headers: {
               ...Object.fromEntries([[authHeaderKey, authHeaderValue]]),
               'Accept-Language': `EN`
             }
           });
+
+          axiosInstance.interceptors.response.use(
+            response => response,
+            (error?: AxiosError) => {
+              if (error?.response?.status == 401) authorisedAxiosInstances.delete(credentials);
+            }
+          );
+
+          return axiosInstance;
         }),
         shareReplay(1)
       );
