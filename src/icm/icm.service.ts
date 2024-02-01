@@ -77,6 +77,8 @@ export class ICMService {
             response => response,
             (error?: AxiosError) => {
               if (error?.response?.status == 401) authorisedAxiosInstances.delete(credentials);
+
+              return Promise.reject(error);
             }
           );
 
