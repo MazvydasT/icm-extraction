@@ -71,7 +71,13 @@ export class ConfigurationService {
         )
           .env(`PERSISTENT_ERROR_COOLDOWN`)
           .default(2 /*min*/ * 60 /*s*/ * 1000 /*ms*/)
-          .argParser(parseInt)
+          .argParser(value => {
+            try {
+              return parseIntClamp(value, { min: 0 });
+            } catch (_) {
+              throw new InvalidArgumentError(``);
+            }
+          })
       )
       .addOption(
         new Option(
@@ -80,7 +86,13 @@ export class ConfigurationService {
         )
           .env(`PERSISTENT_ERROR_COOLDOWN_MAX`)
           .default(6 /*h*/ * 60 /*min*/ * 60 /*s*/ * 1000 /*ms*/)
-          .argParser(parseInt)
+          .argParser(value => {
+            try {
+              return parseIntClamp(value, { min: 0 });
+            } catch (_) {
+              throw new InvalidArgumentError(``);
+            }
+          })
       )
 
       .addOption(
