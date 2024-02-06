@@ -110,6 +110,9 @@ const uppMatDataPostBody = [
   }*/
 ];
 
+// eslint-disable-next-line @typescript-eslint/no-empty-function
+process.on(`unhandledRejection`, () => {});
+
 async function bootstrap() {
   const app = await NestFactory.createApplicationContext(AppModule);
   const icmService = app.get(ICMService);
@@ -328,7 +331,7 @@ async function bootstrap() {
       logger.error(error, ...getAdditionalProperties(error), error.stack);
 
       const cooldown = clamp(
-        Math.pow(configurationService.persistentErrorCooldown, ++persistentErrorCount),
+        configurationService.persistentErrorCooldown * Math.pow(++persistentErrorCount, 2),
         configurationService.persistentErrorCooldown,
         configurationService.persistentErrorCooldownMax
       );

@@ -4,7 +4,7 @@ import axios, { AxiosError, AxiosInstance } from 'axios';
 import { HttpsProxyAgent } from 'https-proxy-agent';
 import { from } from 'ix/iterable';
 import { filter, flatMap, map as mapIx } from 'ix/iterable/operators';
-import { Observable, defer, map, mergeMap, shareReplay } from 'rxjs';
+import { Observable, defer, map, mergeMap } from 'rxjs';
 import { ConfigurationService } from '../configuration/configuration.service';
 import { ICredentials } from './ICredentials';
 import { IUppMatClassesFilterDataItem } from './IUppMatClassesFilterDataItem';
@@ -48,9 +48,12 @@ export class ICMService {
   ) {}
 
   private getAuthorisedAxios(credentials: ICredentials) {
-    const authorisedAxiosInstance =
-      authorisedAxiosInstances.get(credentials) ??
-      defer(() =>
+    return defer(() => {
+      if (authorisedAxiosInstances.has(credentials))
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        return authorisedAxiosInstances.get(credentials)!;
+
+      const authorisedAxiosInstance = defer(() =>
         this.httpService.post(
           LOGIN_URL,
           {
@@ -83,14 +86,13 @@ export class ICMService {
           );
 
           return axiosInstance;
-        }),
-        shareReplay(1)
+        })
       );
 
-    if (!authorisedAxiosInstances.has(credentials))
       authorisedAxiosInstances.set(credentials, authorisedAxiosInstance);
 
-    return authorisedAxiosInstance;
+      return authorisedAxiosInstance;
+    });
   }
 
   private getEnJSON(credentials: ICredentials) {
