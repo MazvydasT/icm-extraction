@@ -268,32 +268,36 @@ async function bootstrap() {
                 let isDateWithoutTime = true;
                 let isInt = true;
                 let isNull = true;
+                let isString = false;
 
-                let series = Series(
-                  columnData.key,
-                  reduce(columnData, {
-                    callback(accumulator, { rowIndex, value }) {
-                      if (typeof value == 'number' && !Number.isInteger(value)) {
-                        isInt = false;
-                      } else if (
-                        value instanceof Date &&
-                        value.getUTCHours() +
-                          value.getUTCMinutes() +
-                          value.getUTCSeconds() +
-                          value.getUTCMilliseconds() >
-                          0
-                      ) {
-                        isDateWithoutTime = false;
-                      }
+                let values = reduce(columnData, {
+                  callback(accumulator, { rowIndex, value }) {
+                    if (typeof value == 'number' && !Number.isInteger(value)) {
+                      isInt = false;
+                    } else if (
+                      value instanceof Date &&
+                      value.getUTCHours() +
+                        value.getUTCMinutes() +
+                        value.getUTCSeconds() +
+                        value.getUTCMilliseconds() >
+                        0
+                    ) {
+                      isDateWithoutTime = false;
+                    }
 
-                      if (value ?? null != null) isNull = false;
+                    if (value ?? null != null) isNull = false;
 
-                      accumulator[rowIndex] = value;
-                      return accumulator;
-                    },
-                    seed: new Array(chgelemPartDataRowCount)
-                  })
-                );
+                    if (typeof value == 'string') isString = true;
+
+                    accumulator[rowIndex] = value;
+                    return accumulator;
+                  },
+                  seed: new Array(chgelemPartDataRowCount)
+                });
+
+                if (isString) values = values.map(v => `${v}`);
+
+                let series = Series(columnData.key, values);
 
                 const seriesType = series.dtype.variant;
 
