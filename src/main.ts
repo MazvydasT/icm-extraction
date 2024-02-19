@@ -254,7 +254,10 @@ async function bootstrap() {
                         newValue = new Date(value);
                       else if (/^\d{2}\.\d{2}\.\d{4}$/.test(value))
                         newValue = new Date(value.split(`.`).reverse().join(`-`));
-                      else if (isNumeric(value) && !value.trim().startsWith(`0`))
+                      else if (
+                        isNumeric(value) &&
+                        (!value.trim().startsWith(`0`) || value.length == 1)
+                      )
                         newValue = parseFloat(value);
                     }
 
