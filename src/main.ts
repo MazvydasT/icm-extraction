@@ -177,8 +177,10 @@ async function bootstrap() {
         )
       );
 
-      const chgelemPartDataPromise = icmService
-        .getChgelemPartData(credentials, [...chgelemChgnoteSeqTechSet.keys()])
+      const chgelemPartDataObservable = icmService
+        .getChgelemPartData(credentials, [
+          ...from(chgelemChgnoteSeqTechSet.keys()).pipe(ixMap(value => (!value ? -1 : value)))
+        ])
         .pipe(retry(retryConfig));
 
       const uppViewMatClassParamDataColumnNames = await uppViewMatClassParamDataColumnNamesPromise;
@@ -210,7 +212,7 @@ async function bootstrap() {
       );
 
       const data = await firstValueFrom(
-        zip([chgelemColumnNamesPromise, chgelemPartDataPromise]).pipe(
+        zip([chgelemColumnNamesPromise, chgelemPartDataObservable]).pipe(
           tap(() => logger.log(`Data extracted`)),
           map(([chgelemColumnNames, chgelemPartData]) => {
             const chgelemPartDataRowCount = chgelemPartData.length;
