@@ -1,7 +1,7 @@
 import { Logger } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
-import { concat, empty, from, reduce } from 'ix/iterable';
-import { filter, flatMap, groupBy, map as ixMap } from 'ix/iterable/operators';
+import { concat, empty, from, reduce } from 'ix/Ix.iterable';
+import { filter, flatMap, groupBy, map as ixMap } from 'ix/Ix.iterable.operators';
 import { DateTime } from 'luxon';
 import { DataFrame, DataType, Series, lit } from 'nodejs-polars';
 import { TimeUnit } from 'nodejs-polars/bin/datatypes';

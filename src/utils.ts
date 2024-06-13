@@ -1,5 +1,5 @@
-import { from } from 'ix/iterable';
-import { map } from 'ix/iterable/operators';
+import { from } from 'ix/Ix.iterable';
+import { map } from 'ix/Ix.iterable.operators';
 
 export function parseIntClamp(
   value: string,
