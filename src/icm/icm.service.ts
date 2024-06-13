@@ -3,10 +3,11 @@ import { Injectable } from '@nestjs/common';
 import axios, { AxiosError, AxiosInstance } from 'axios';
 import { HttpsProxyAgent } from 'https-proxy-agent';
 import { from } from 'ix/iterable';
-import { filter, flatMap, map as mapIx } from 'ix/iterable/operators';
-import { Observable, defer, map, mergeMap } from 'rxjs';
+import { filter as filterIx, flatMap, map as mapIx } from 'ix/iterable/operators';
+import { Observable, defer, filter, map, mergeMap, toArray } from 'rxjs';
 import { ConfigurationService } from '../configuration/configuration.service';
 import { ICredentials } from './ICredentials';
+import { IListValueDataItem } from './IListValueDataItem';
 import { IUppMatClassesFilterDataItem } from './IUppMatClassesFilterDataItem';
 import { IUppMatDataItem } from './IUppMatDataItem';
 import { IUppViewMatClassParamDataItem } from './IUppViewMatClassParamDataItem';
@@ -30,6 +31,11 @@ const UPP_VIEW_MAT_CLASSES_FILTER_URL = `https://apps01.magnasteyr.com/icmnfRest
  * ULR to get 'chgelemPart' property to column english name mapping
  */
 const EN_JSON_URL = `https://apps01.magnasteyr.com/icmnfext/assets/i18n/en.json`;
+
+/**
+ * URL to get 'list of values' - data to label mapping
+ */
+const LOV_URL = `https://apps01.magnasteyr.com/icmnfRest/lov/`;
 
 const authorisedAxiosInstances = new WeakMap<ICredentials, Observable<AxiosInstance>>();
 
@@ -95,6 +101,20 @@ export class ICMService {
     });
   }
 
+  public getDataToLabelMap(credentials: ICredentials, listValuesId: `UPP_STATUS`) {
+    const lovULR = new URL(LOV_URL);
+    lovULR.searchParams.append(`listValIds`, listValuesId);
+
+    return this.getAuthorisedAxios(credentials).pipe(
+      mergeMap(axios => axios.get(lovULR.href)),
+      mergeMap(response => (response.data[listValuesId] ?? []) as IListValueDataItem[]),
+      filter(({ isValid }) => isValid),
+      map(({ data, label }) => [data, label] as const),
+      toArray(),
+      map(keyValuePairs => new Map(keyValuePairs))
+    );
+  }
+
   private getEnJSON(credentials: ICredentials) {
     return this.getAuthorisedAxios(credentials).pipe(
       mergeMap(axios => axios.get<Ii18nJSONData>(EN_JSON_URL)),
@@ -107,8 +127,11 @@ export class ICMService {
       map(
         data =>
           new Map(
-            from(Object.entries(data.columns.chgelem)).pipe(
-              filter(([, value]) => typeof value == 'string'),
+            from([
+              //...Object.entries(data.columns.uppMaterial),
+              ...Object.entries(data.columns.chgelem)
+            ]).pipe(
+              filterIx(([, value]) => typeof value == 'string'),
               mapIx(keyValuePair => keyValuePair as [string, string])
             )
           )
@@ -162,7 +185,7 @@ export class ICMService {
                         string
                       ]
                   ),
-                  filter(([, value]) => value.length > 0)
+                  filterIx(([, value]) => value.length > 0)
                 )
               )
             )

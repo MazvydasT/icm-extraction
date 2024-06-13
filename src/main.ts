@@ -9,6 +9,7 @@ import { RetryConfig, firstValueFrom, map, retry, tap, timer, zip } from 'rxjs';
 import { AppModule } from './app.module';
 import { ConfigurationService } from './configuration/configuration.service';
 import { ICredentials } from './icm/ICredentials';
+import { IUppMatDataItem } from './icm/IUppMatDataItem';
 import { ICMService } from './icm/icm.service';
 import { OutputService } from './output/output.service';
 import { clamp, getAdditionalProperties, isNumeric } from './utils';
@@ -35,7 +36,7 @@ const uppMatDataPostBody = [
         type: 'MsfClassificationFilterSetting',
         additionalCriteria: null,
         filterKey: 'uppStatus',
-        filterValue: 'N;|;G;|;Z',
+        filterValue: 'N;|;G;|;Z;|;Y',
         multivalueExactMatch: false,
         useAndConcatenation: false,
         useCaseSensitiveComparision: true,
@@ -151,27 +152,37 @@ async function bootstrap() {
           .pipe(retry(retryConfig))
       );
 
+      const uppStatusDataToLabelMapPromise = firstValueFrom(
+        icmService.getDataToLabelMap(credentials, 'UPP_STATUS').pipe(retry(retryConfig))
+      );
+
       const {
         chgelemChgnoteSeqTechSet,
         uppviewMatSeqSet,
-        chgelemChgnoteSeqTechToUppviewMatSeqMap
+        chgelemChgnoteSeqTechToUppviewMatSeqMap,
+        uppDataByChgelemChgnoteSeqTech
       } = await firstValueFrom(
         icmService.getUPPMatData(credentials, uppMatDataPostBody).pipe(
           map(uppMatData => {
             const chgelemChgnoteSeqTechSet = new Set<number>();
             const uppviewMatSeqSet = new Set<number>();
             const chgelemChgnoteSeqTechToUppviewMatSeqMap = new Map<number, number>();
+            const uppDataByChgelemChgnoteSeqTech = new Map<number, IUppMatDataItem>();
 
-            for (const { chgelemChgnoteSeqTech, uppviewMatSeq } of uppMatData) {
+            for (const uppMatDataItem of uppMatData) {
+              const { chgelemChgnoteSeqTech, uppviewMatSeq } = uppMatDataItem;
+
               chgelemChgnoteSeqTechSet.add(chgelemChgnoteSeqTech);
               uppviewMatSeqSet.add(uppviewMatSeq);
               chgelemChgnoteSeqTechToUppviewMatSeqMap.set(chgelemChgnoteSeqTech, uppviewMatSeq);
+              uppDataByChgelemChgnoteSeqTech.set(chgelemChgnoteSeqTech, uppMatDataItem);
             }
 
             return {
               chgelemChgnoteSeqTechSet,
               uppviewMatSeqSet,
-              chgelemChgnoteSeqTechToUppviewMatSeqMap
+              chgelemChgnoteSeqTechToUppviewMatSeqMap,
+              uppDataByChgelemChgnoteSeqTech
             };
           }),
           retry(retryConfig)
@@ -213,17 +224,29 @@ async function bootstrap() {
       );
 
       const data = await firstValueFrom(
-        zip([chgelemColumnNamesPromise, chgelemPartDataObservable]).pipe(
+        zip([
+          chgelemColumnNamesPromise,
+          chgelemPartDataObservable,
+          uppStatusDataToLabelMapPromise
+        ]).pipe(
           tap(() => logger.log(`Data extracted`)),
-          map(([chgelemColumnNames, chgelemPartData]) => {
+          map(([chgelemColumnNames, chgelemPartData, uppStatusDataToLabelMap]) => {
             const chgelemPartDataRowCount = chgelemPartData.length;
 
             return from(chgelemPartData).pipe(
               ixMap((record, rowIndex) => {
                 const { chgelemChgnoteSeq } = record;
 
+                let { uppStatus, uppStatusChgDate } =
+                  uppDataByChgelemChgnoteSeqTech.get(chgelemChgnoteSeq) ?? {};
+
+                uppStatus = uppStatusDataToLabelMap.get(uppStatus!) ?? uppStatus;
+
                 return concat(
-                  from(Object.entries(record)).pipe(
+                  from([
+                    ...Object.entries({ uppStatus, uppStatusChgDate }),
+                    ...Object.entries(record)
+                  ]).pipe(
                     ixMap(([key, value]) => ({
                       key: chgelemColumnNames.get(key) ?? key,
                       value
