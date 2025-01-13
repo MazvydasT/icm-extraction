@@ -1,7 +1,7 @@
 import { Logger } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
-import { concat, empty, from, reduce } from 'ix/Ix.iterable';
-import { filter, flatMap, groupBy, map as ixMap } from 'ix/Ix.iterable.operators';
+import { concat, empty, from, reduce } from 'ix/iterable';
+import { filter, flatMap, groupBy, map as ixMap } from 'ix/iterable/operators';
 import { DateTime } from 'luxon';
 import { DataFrame, DataType, Series, lit } from 'nodejs-polars';
 import { TimeUnit } from 'nodejs-polars/bin/datatypes';
@@ -14,104 +14,6 @@ import { ICMService } from './icm/icm.service';
 import { OutputService } from './output/output.service';
 import { clamp, getAdditionalProperties, isNumeric } from './utils';
 
-const prostructSeq = 3321;
-const uppgenerationSeq = 1841;
-const uppviewSeq = 81;
-
-const uppViewMatClassesFilterPostBody = {
-  prjstructSeq: 0,
-  prostructSeq: prostructSeq,
-  uppgenerationSeq: uppgenerationSeq,
-  uppviewSeq: uppviewSeq
-};
-
-const uppMatDataPostBody = [
-  {
-    additionalCriteria: null,
-    dataProviderName: 'DP_UPPVIEWMAT',
-    foreignKeyName: 'uppviewMatSeq',
-    dpEntityClass: null,
-    filterValues: [
-      {
-        type: 'MsfClassificationFilterSetting',
-        additionalCriteria: null,
-        filterKey: 'uppStatus',
-        filterValue: 'N;|;G;|;Z;|;Y',
-        multivalueExactMatch: false,
-        useAndConcatenation: false,
-        useCaseSensitiveComparision: true,
-        useWildCards: false
-      }
-    ]
-  },
-  {
-    additionalCriteria: null,
-    dataProviderName: 'DP_MANDATORY',
-    foreignKeyName: null,
-    dpEntityClass: null,
-    filterValues: [
-      {
-        type: 'MsfClassificationFilterSetting',
-        additionalCriteria: null,
-        filterKey: 'MANDATORY_FILTER_UPPGENERATION',
-        filterValue: `${uppgenerationSeq}`,
-        multivalueExactMatch: false,
-        useAndConcatenation: false,
-        useCaseSensitiveComparision: true,
-        useWildCards: false
-      },
-      {
-        type: 'MsfClassificationFilterSetting',
-        additionalCriteria: null,
-        filterKey: 'MANDATORY_FILTER_UPPVIEW',
-        filterValue: `${uppviewSeq}`,
-        multivalueExactMatch: false,
-        useAndConcatenation: false,
-        useCaseSensitiveComparision: true,
-        useWildCards: false
-      },
-      {
-        type: 'MsfClassificationFilterSetting',
-        additionalCriteria: null,
-        filterKey: 'MANDATORY_FILTER_PRODUCT_TYPE',
-        filterValue: 'MOD',
-        multivalueExactMatch: false,
-        useAndConcatenation: false,
-        useCaseSensitiveComparision: true,
-        useWildCards: false
-      },
-      {
-        type: 'MsfClassificationFilterSetting',
-        additionalCriteria: null,
-        filterKey: 'MANDATORY_FILTER_PRODUCT',
-        filterValue: `${prostructSeq}`,
-        multivalueExactMatch: false,
-        useAndConcatenation: false,
-        useCaseSensitiveComparision: true,
-        useWildCards: false
-      }
-    ]
-  } /*,
-  {
-    additionalCriteria: null,
-    dataProviderName: 'DP_UPPVIEWMAT_CPARAM',
-    foreignKeyName: 'uppviewMatSeq',
-    dpEntityClass: null,
-    filterValues: [
-      {
-        type: 'BOOLEAN',
-        additionalCriteria: null,
-        filterKey: '4801',
-        filterValue: '1',
-        multivalueExactMatch: false,
-        useAndConcatenation: false,
-        useCaseSensitiveComparision: true,
-        useWildCards: false
-      }
-    ]
-  }*/
-];
-
 // eslint-disable-next-line @typescript-eslint/no-empty-function
 process.on(`unhandledRejection`, () => {});
 
@@ -122,6 +24,105 @@ async function bootstrap() {
   const outputService = app.get(OutputService);
 
   const logger = new Logger(`main`);
+
+  const uppStatus = configurationService.uppStatus;
+  const uppgenerationSeq = configurationService.uppGenerationSeq;
+  const prostructSeq = 3321;
+  const uppviewSeq = 81;
+
+  const uppViewMatClassesFilterPostBody = {
+    prjstructSeq: 0,
+    prostructSeq: prostructSeq,
+    uppgenerationSeq: uppgenerationSeq,
+    uppviewSeq: uppviewSeq
+  };
+
+  const uppMatDataPostBody = [
+    {
+      additionalCriteria: null,
+      dataProviderName: 'DP_UPPVIEWMAT',
+      foreignKeyName: 'uppviewMatSeq',
+      dpEntityClass: null,
+      filterValues: [
+        {
+          type: 'MsfClassificationFilterSetting',
+          additionalCriteria: null,
+          filterKey: 'uppStatus',
+          filterValue: uppStatus,
+          multivalueExactMatch: false,
+          useAndConcatenation: false,
+          useCaseSensitiveComparision: true,
+          useWildCards: false
+        }
+      ]
+    },
+    {
+      additionalCriteria: null,
+      dataProviderName: 'DP_MANDATORY',
+      foreignKeyName: null,
+      dpEntityClass: null,
+      filterValues: [
+        {
+          type: 'MsfClassificationFilterSetting',
+          additionalCriteria: null,
+          filterKey: 'MANDATORY_FILTER_UPPGENERATION',
+          filterValue: `${uppgenerationSeq}`,
+          multivalueExactMatch: false,
+          useAndConcatenation: false,
+          useCaseSensitiveComparision: true,
+          useWildCards: false
+        },
+        {
+          type: 'MsfClassificationFilterSetting',
+          additionalCriteria: null,
+          filterKey: 'MANDATORY_FILTER_UPPVIEW',
+          filterValue: `${uppviewSeq}`,
+          multivalueExactMatch: false,
+          useAndConcatenation: false,
+          useCaseSensitiveComparision: true,
+          useWildCards: false
+        },
+        {
+          type: 'MsfClassificationFilterSetting',
+          additionalCriteria: null,
+          filterKey: 'MANDATORY_FILTER_PRODUCT_TYPE',
+          filterValue: 'MOD',
+          multivalueExactMatch: false,
+          useAndConcatenation: false,
+          useCaseSensitiveComparision: true,
+          useWildCards: false
+        },
+        {
+          type: 'MsfClassificationFilterSetting',
+          additionalCriteria: null,
+          filterKey: 'MANDATORY_FILTER_PRODUCT',
+          filterValue: `${prostructSeq}`,
+          multivalueExactMatch: false,
+          useAndConcatenation: false,
+          useCaseSensitiveComparision: true,
+          useWildCards: false
+        }
+      ]
+    } /*,
+    {
+      additionalCriteria: null,
+      dataProviderName: 'DP_UPPVIEWMAT_CPARAM',
+      foreignKeyName: 'uppviewMatSeq',
+      dpEntityClass: null,
+      filterValues: [
+        {
+          type: 'BOOLEAN',
+          additionalCriteria: null,
+          filterKey: '4801',
+          filterValue: '1',
+          multivalueExactMatch: false,
+          useAndConcatenation: false,
+          useCaseSensitiveComparision: true,
+          useWildCards: false
+        }
+      ]
+    }*/
+  ];
 
   const retryConfig: RetryConfig = {
     count: configurationService.retries,
@@ -326,7 +327,7 @@ async function bootstrap() {
 
                 if (isString) values = values.map(v => `${v}`);
 
-                let series = Series(columnData.key, values);
+                let series = Series(columnData.key, values, undefined);
 
                 const seriesType = series.dtype.variant;
 

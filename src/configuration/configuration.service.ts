@@ -37,6 +37,26 @@ export class ConfigurationService {
           .makeOptionMandatory(true)
       )
 
+      .addOption(
+        new Option(`--upp-status <string>`, `e.g. 'N;|;G;|;Z;|;Y', for uppMatDataProvider endpoint`)
+          .env(`UPP_STATUS`)
+          .makeOptionMandatory(true)
+      )
+      .addOption(
+        new Option(
+          `--upp-generation-seq <number>, e.g. 1841, for uppviewMatClassesFilter and uppMatDataProvider endpoints`
+        )
+          .env(`UPP_GENERATION_SEQ`)
+          .makeOptionMandatory(true)
+          .argParser(value => {
+            try {
+              return parseInt(value);
+            } catch (_) {
+              throw new InvalidArgumentError(``);
+            }
+          })
+      )
+
       .addOption(new Option(`--https-proxy <string>`, `HTTP proxy`).env(`HTTPS_PROXY`))
 
       .addOption(
@@ -136,6 +156,9 @@ export class ConfigurationService {
       username: string;
       password: string;
 
+      uppStatus: string;
+      uppGenerationSeq: number;
+
       httpsProxy?: string;
 
       retry: number;
@@ -160,6 +183,13 @@ export class ConfigurationService {
   }
   get password() {
     return this.optionValues.password;
+  }
+
+  get uppStatus() {
+    return this.optionValues.uppStatus;
+  }
+  get uppGenerationSeq() {
+    return this.optionValues.uppGenerationSeq;
   }
 
   get httpsProxy() {
